@@ -7,12 +7,12 @@ The input is a single numpy array of dimensions
 
 A hypothesis is a collection of ellipses of the form
 
-(center_x, center_y, x_radius, y_radius, rotation)
+(center_x, center_y, x_radius, y_radius, rotation, r, g, b, alpha)
 
 Where center_x and center_y are from the top right of the image,
 x_radius and y_radius are the two radii of the ellipse along the two axes, and
 rotation is the rotation of the ellipse from the x axis. Rotation is in units
-of 2pi / 100
+of 1 / 100 radians
 
 Core operations:
 
@@ -54,8 +54,8 @@ class Ellipse:
         self.center_x = center_x
         self.center_y = center_y
         self.radius_x = radius_x
-        self.radius_x = radius_x
-        self.rotation = rotation
+        self.radius_y = radius_y
+        self.rotation = int(rotation * 100)
         self.r = r
         self.g = g
         self.b = b
@@ -98,19 +98,18 @@ image_y = 256
 
 @jit(nopython=True)
 def ellipse_contains_point(ellipse, x, y):
-    cosa = math.cos(ellipse.rotation)
-    sina = math.sin(ellipse.rotation)
-    dd = ellipse.radius_x / 2 ** 2
-    DD = ellipse.radius_y / 2 ** 2
+    cosa = numpy.cos(ellipse.rotation / 100.0)
+    sina = numpy.sin(ellipse.rotation / 100.0)
+    x_axis_sq = ellipse.radius_x ** 2
+    y_axis_sq = ellipse.radius_y ** 2
 
-    a = math.pow(cosa * (x - ellipse.center_x) + sina * (y - ellipse_center_y), 2)
-    b = math.pow(sina * (x - ellipse.center_x) - cosa * (y - ellipse.center_y), 2)
-    ellipse=(a/dd)+(b/DD)
-
-    if ellipse <= 1:
-        return True
-    else:
-        return False
+    rotated_x_dev = (
+        cosa * (x - ellipse.center_x) + sina * (y - ellipse.center_y)
+    ) ** 2
+    rotated_y_dev = (
+        sina * (x - ellipse.center_x) - cosa * (y - ellipse.center_y)
+    ) ** 2
+    return (rotated_x_dev / x_axis_sq) + (rotated_y_dev / y_axis_sq) <= 1
 
 
 @jit(nopython=True)
