@@ -61,6 +61,19 @@ class Ellipse:
         self.b = b
         self.alpha = alpha
 
+    def at(self, t):
+        x = (
+            self.center_x
+            + self.radius_x * numpy.cos(t) * numpy.cos(self.rotation)
+            - self.radius_y * numpy.sin(t) * numpy.sin(self.rotation)
+        )
+        y = (
+            self.center_y
+            + self.radius_x * numpy.cos(t) * numpy.sin(self.rotation)
+            + self.radius_y * numpy.sin(t) * numpy.cos(self.rotation)
+        )
+        return (x, y)
+
 
 # neighbors are in +/- window
 center_x_window = 1
@@ -114,7 +127,25 @@ def ellipse_contains_point(ellipse, x, y):
 
 @jit(nopython=True)
 def ellipse_bounding_box(ellipse):
-    pass
+    """
+    Compute tight ellipse bounding box.
+    """
+    x_rad = (
+        ellipse.radius_x ** 2 * numpy.cos(ellipse.rotation) ** 2
+        - ellipse.radius_y ** 2 * numpy.sin(ellipse.rotation) ** 2
+    )
+    y_rad = (
+        - ellipse.radius_x ** 2 * numpy.sin(ellipse.rotation) ** 2
+        + ellipse.radius_y ** 2 * numpy.cos(ellipse.rotation) ** 2
+    )
+
+    x_sqrt = numpy.sqrt(x_rad)
+    y_sqrt = numpy.sqrt(y_rad)
+    return [
+        (-x_sqrt + ellipse.center_x, x_sqrt + ellipse.center_x),
+        (-y_sqrt + ellipse.center_y, y_sqrt + ellipse.center_y),
+    ]
+
 
 
 @jit(nopython=True)
